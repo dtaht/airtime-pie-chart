@@ -114,10 +114,9 @@ int ieee80211_frame_duration(size_t len,
 	 * DIV_ROUND_UP() operations.
 	 */
 
+	erp = 1;
 	if (rate == 10 || rate == 20 || rate == 55 || rate == 110)
 		erp = 0;
-	else
-		erp = 1;
 
 	if (/*band == IEEE80211_BAND_5GHZ ||*/ erp) {
 		/*
@@ -393,8 +392,8 @@ static void pcap_copy_handler(u_char *user, const struct pcap_pkthdr *h, const u
 	wifihdr = (struct ieee80211_hdr*)bytes;
 	fc = be16toh(wifihdr->frame_control);
 
-	if ((fc & IEEE80211_FCTL_FTYPE) != IEEE80211_FTYPE_DATA)
-		return;
+	//	if ((fc & IEEE80211_FCTL_FTYPE) != IEEE80211_FTYPE_DATA)
+	//	return;
 
 	if (fc & IEEE80211_FCTL_TODS)
 		memcpy(dhost.mac, wifihdr->addr3, 6);
