@@ -263,10 +263,10 @@ static void pcap_copy_handler(u_char *user, const struct pcap_pkthdr *h, const u
 	}
 
 	/* parse this weird radiotap stuff until we got rate and mcs */
+
 	for (i = 0; i < 20; i++) {
 		if (!(le32toh(radiotaphdr->it_present) & (1u << i)))
 			continue;
-
 		unsigned int size = 0;
 		unsigned int alignment = 1;
 		unsigned int padding;
@@ -343,6 +343,21 @@ static void pcap_copy_handler(u_char *user, const struct pcap_pkthdr *h, const u
 			size = 2;
 			alignment = 2;
 			break;
+		case 15: /* TX flags */
+			size = 2;
+			alignment = 2;
+			break;
+		case 16: /* RTS Retries clashes with RSSI*/
+			size = 1;
+			break;
+		case 17: /* */
+			size = 1;
+			break;
+		/* OSX and BSD use http://www.radiotap.org/suggested-fields/XChannel  */
+		case 18:
+		        size = 8;
+		        alignment = 4;
+		        break;
 		case 19: /* MCS */
 			size = 3;
 			alignment = 1;
@@ -363,6 +378,18 @@ static void pcap_copy_handler(u_char *user, const struct pcap_pkthdr *h, const u
 				}
 			}
 			break;
+		case 20: /* AMPDU status - might be important! */
+		  size = 8;
+		  alignment = 2;
+		  break;
+		case 21: /* VHT */
+		  size = 12;
+		  alignment = 2;
+		  break;
+		case 22: /* Timestamp */
+		  size = 8; /* 12? */
+		  alignment = 8;
+		  break;
 		default:
 			fprintf(stderr, "Found radiotap present-flag without known decoding: %u\n", i);
 			exit(1);
@@ -372,7 +399,7 @@ static void pcap_copy_handler(u_char *user, const struct pcap_pkthdr *h, const u
 			padding = radiotap_pos % alignment;
 
 			if ((padding + size) > radiotap_len) {
-				fprintf(stderr, "Radiotap is to short to process present-flag: %u\n", i);
+			  fprintf(stderr, "Radiotap is too short to process present-flag: %u - object = %u size = %u radiotap = %u\n", i, size, padding + size, radiotap_len);
 				exit(1);
 			}
 			radiotap_pos += padding + size;
@@ -392,7 +419,7 @@ static void pcap_copy_handler(u_char *user, const struct pcap_pkthdr *h, const u
 	wifihdr = (struct ieee80211_hdr*)bytes;
 	fc = be16toh(wifihdr->frame_control);
 
-	//	if ((fc & IEEE80211_FCTL_FTYPE) != IEEE80211_FTYPE_DATA)
+	//if ((fc & IEEE80211_FCTL_FTYPE) != IEEE80211_FTYPE_DATA)
 	//	return;
 
 	if (fc & IEEE80211_FCTL_TODS)
